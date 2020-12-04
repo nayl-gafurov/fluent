@@ -1,0 +1,16 @@
+{
+  "name": "fluent",
+  "version": "0.0.1",
+  "description": "javascript framework",
+  "main": "index.js",
+  "scripts": {
+    "prepare": "tsc",
+    "start": "tsc && node run.js"
+  },
+  "keywords": [],
+  "author": "Nayl Gafurov",
+  "license": "MIT",
+  "dependencies": {
+    "typescript": "^4.1.2"
+  }
+}
