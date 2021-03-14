@@ -39,7 +39,7 @@ export class Box extends Observable {
 
 
     getBoxForDeclaration(): ts.VariableDeclaration | undefined {
-        if (!this.transformedToBox && (this.initializerExpression || (isPrimitive(this.node, this.program)))) {
+        if (!this.transformedToBox && (this.initializerExpression || (isPrimitive(this.node)))) {
             this.transformedToBox = true;
             TransformedObservables.set(this.node, this)
             return factory.createVariableDeclaration(this.name, undefined, undefined, this.getExpression());
@@ -47,10 +47,10 @@ export class Box extends Observable {
     }
 
     getBoxForBinary(node: ts.BinaryExpression) {
-        if (isPrimitive(node.right, this.program)) {
+        if (isPrimitive(node.right)) {
             const identifier = node.left;
             if (ts.isIdentifier(identifier)) {
-                const symbol = getSymbol(identifier, this.program);
+                const symbol = getSymbol(identifier);
                 if (symbol) {
                     const valueDeclaration = symbol.valueDeclaration;
                     if (ts.isVariableDeclaration(valueDeclaration)) {

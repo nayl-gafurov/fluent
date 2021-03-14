@@ -1,97 +1,40 @@
 import ts from 'typescript';
+import { DomElements } from '../jsxTransformer';
 const factory = ts.factory;
 
 
-export class VirtualElement {
+export abstract class VirtualElement {
+
     protected parent?: VirtualElement;
-    children: Array<VirtualElement | string>;
-    tagName: string;
-    node: ts.JsxElement | ts.JsxSelfClosingElement;
 
 
-    constructor(node: ts.JsxElement | ts.JsxSelfClosingElement) {
+    node: ts.JsxChild;
+    index: number;
+
+    static isJsxChild(node: ts.Node): node is ts.JsxChild {
+        return ts.isJsxElement(node) || ts.isJsxText(node) || ts.isJsxExpression(node) ||
+            ts.isJsxSelfClosingElement(node) || ts.isJsxFragment(node);
+    }
+
+
+    constructor(node: ts.JsxChild) {
         this.node = node;
-        if (ts.isJsxElement(node)) {
-            this.tagName = (node.openingElement.tagName as ts.Identifier).text;
-        } else {
-            this.tagName = (node.tagName as ts.Identifier).text;
+
+        DomElements.add(this);
+        this.index = DomElements.size;
+    }
+
+    setParent(parent: VirtualElement) {
+        if (!this.parent) {
+            this.parent = parent;
         }
-
-        this.children = [];
-
-
-    }
-
-    addChildren() {
-        const childrenNodes = this.node.getChildren();
-        if (Array.isArray(childrenNodes)) {
-            childrenNodes.forEach(child => {
-                if (ts.isJsxText(child)) {
-                    this.children.push(child.getText())
-                } else if (ts.isJsxExpression(child)) {
-
-                } else if (ts.isJsxElement(child) || ts.isJsxSelfClosingElement(child)) {
-                    this.children.push(new VirtualElement(child))
-                }
-            })
-        }
-
-
-    }
-
-    generateTextDomElement(text: ts.Identifier | string) {
-        return factory.createCallExpression(
-            factory.createPropertyAccessExpression(
-                factory.createIdentifier("document"),
-                factory.createIdentifier("createTextNode")
-            ),
-            undefined,
-            [typeof (text) === "string" ? factory.createIdentifier(text) : text]
-        )
     }
 
 
-    generateDomElement() {
-        return (
-            factory.createCallExpression(
-                factory.createPropertyAccessExpression(
-                    factory.createIdentifier("document"),
-                    factory.createIdentifier("createElement")
-                ),
-                undefined,
-                [factory.createIdentifier('"' + this.tagName + '"')]
-            )
+    abstract getElement(): ts.Statement 
 
-        )
-    }
 
-    generateExpression(){
-        return factory.createExpressionStatement(factory.createCallExpression(
-            factory.createIdentifier("autorun"),
-            undefined,
-            [factory.createArrowFunction(
-              undefined,
-              undefined,
-              [],
-              undefined,
-              factory.createToken(ts.SyntaxKind.EqualsGreaterThanToken),
-              factory.createBinaryExpression(
-                factory.createIdentifier("e"),
-                factory.createToken(ts.SyntaxKind.PlusToken),
-                factory.createNumericLiteral("5")
-              )
-            )]
-          ))
-    }
-
-    finalGather() {
-        factory.createBlock(
-            [
-                factory.createExpressionStatement(this.generateDomElement()),
-            ],
-            true
-        )
-    }
+    abstract getCode(): ts.Statement 
 
 
 

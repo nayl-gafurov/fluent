@@ -1,13 +1,19 @@
-import ts, { isVariableDeclaration } from 'typescript';
+import ts from 'typescript';
+import { App } from './App';
+
 
 export type Primitive = ts.SyntaxKind.NumberKeyword | ts.SyntaxKind.StringKeyword;
 export type PrimitiveLiterals = ts.NumericLiteral | ts.StringLiteral;
 
-export const isPrimitiveLiterals = (node: ts.Node): node is PrimitiveLiterals => {
-    return (ts.isNumericLiteral(node) || ts.isStringLiteral(node))
+export const getType = (node: ts.Node):ts.Type => {
+   return  App.program().getTypeChecker().getTypeAtLocation(node);
 }
 
+
 export const isPrimitiveType = (type: ts.Type): boolean => {
+    if(type.flags === ts.TypeFlags.Number || type.flags === ts.TypeFlags.String){
+        return true;
+    }
     if (type.isNumberLiteral() || type.isStringLiteral()) {
         return true;
     }
@@ -17,20 +23,14 @@ export const isPrimitiveType = (type: ts.Type): boolean => {
     return false
 }
 
-export const isPrimitiveTypeNode = (node: ts.TypeNode, program: ts.Program): boolean => {
-    const checker = program.getTypeChecker();
-    const type = checker.getTypeAtLocation(node);
-    return isPrimitiveType(type);
-}
 
-
-export const getSymbol = (node: ts.Identifier, program: ts.Program): ts.Symbol | undefined => {
-    const checker = program.getTypeChecker();
+export const getSymbol = (node: ts.Identifier): ts.Symbol | undefined => {
+    const checker = App.program().getTypeChecker();
     return checker.getSymbolAtLocation(node);
 }
 
-export const getValueDeclaration = (node: ts.Identifier, program: ts.Program): ts.VariableDeclaration | undefined => {
-    const symbol = getSymbol(node, program);
+export const getVariableDeclaration = (node: ts.Identifier): ts.VariableDeclaration | undefined => {
+    const symbol = getSymbol(node);
     if (symbol) {
         const valueDeclaration = symbol.valueDeclaration
         if (ts.isVariableDeclaration(valueDeclaration))
@@ -39,54 +39,26 @@ export const getValueDeclaration = (node: ts.Identifier, program: ts.Program): t
 }
 
 
-// export const isPrimitive2 = (obj: ts.SyntaxKind | ts.VariableDeclaration): obj is Primitive => {
 
-//     if (typeof (obj) !== "number") {
-//         if (obj.initializer) {
-//             // if(ts.isNumericLiteral(obj.initializer))
-//             const result = isPrimitive(obj.initializer.kind);
-//             if (result) {
-//                 return true
-//             }
-//         }
-//         if (obj.type) {
-//             const result = isPrimitive(obj.type);
-//             if (result) {
-//                 return true
-//             }
-//         }
-
-//     } else if (obj === ts.SyntaxKind.NumberKeyword || obj === ts.SyntaxKind.StringKeyword ||
-//         obj === ts.SyntaxKind.NumericLiteral || obj === ts.SyntaxKind.StringLiteral) {
-//         return true
-//     }
-//     return false
-// }
-
-
-
-export const isPrimitive = (node: ts.VariableDeclaration | ts.Expression | PrimitiveLiterals | ts.TypeNode, program: ts.Program): node is PrimitiveLiterals => {
+export const isPrimitive = (node: ts.VariableDeclaration | ts.Expression | PrimitiveLiterals | ts.TypeNode): node is PrimitiveLiterals => {
     if (ts.isVariableDeclaration(node)) {
         if (node.initializer) {
-            return isPrimitive(node.initializer, program);
+            return isPrimitive(node.initializer);
         }
         if (node.type) {
-            return isPrimitive(node.type, program);
+            return isPrimitive(node.type);
         }
     } else if (ts.isBinaryExpression(node)) {
-        return isPrimitive(node.right, program);
-    } else if (isPrimitiveLiterals(node)) {
-        return true;
-    } else if (ts.isTypeNode(node)) {
-        return isPrimitiveTypeNode(node, program);
+        return isPrimitive(node.right);
     } else if (ts.isIdentifier(node)) {
-        const symbol = getSymbol(node, program);
+        const symbol = getSymbol(node);
         if (symbol) {
             const valueDeclaration = symbol.valueDeclaration
             if (ts.isVariableDeclaration(valueDeclaration))
-                return isPrimitive(valueDeclaration, program)
+                return isPrimitive(valueDeclaration)
         }
-
+    }else{
+        return isPrimitiveType (getType(node))
     }
     return false
 }
